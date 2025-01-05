@@ -14,12 +14,11 @@ func InitRedis() {
 	ctx := context.Background()
 
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_HOST"),     // Contoh: "localhost:6379"
-		Password: os.Getenv("REDIS_PASSWORD"), // Kosong jika tidak ada password
-		DB:       0,                           // Database default
+		Addr:     os.Getenv("REDIS_HOST"),
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0,
 	})
 
-	// Test koneksi Redis
 	_, err := RedisClient.Ping(ctx).Result()
 	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)

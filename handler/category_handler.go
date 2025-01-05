@@ -11,10 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Struct input dengan validasi menggunakan tag binding
-type CreateCategoryRequest struct {
-	Name string `json:"name" binding:"required,max=255"`
-}
 type CategoryHandler struct {
 	categoryService service.CategoryService
 }

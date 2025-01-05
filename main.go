@@ -7,7 +7,6 @@ import (
 	"crud-clean-architecture/config"
 	"crud-clean-architecture/domain"
 	"crud-clean-architecture/handler"
-	"crud-clean-architecture/middleware"
 	"crud-clean-architecture/repository"
 	"crud-clean-architecture/routes"
 	"crud-clean-architecture/service"
@@ -58,9 +57,6 @@ func main() {
 			return field.Tag.Get("json")
 		})
 	}
-
-	// Add middleware
-	r.Use(middleware.ErrorMiddleware())
 
 	// Register Routes
 	routes.RegisterCategoryRoutes(r.Group("/categories"), categoryHandler)
