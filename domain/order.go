@@ -19,6 +19,7 @@ type OrderDetail struct {
 	ProductID uint      `json:"product_id" binding:"required"`
 	Quantity  int       `json:"quantity" binding:"required,gt=0"`
 	Subtotal  float64   `json:"subtotal"`
+	Product   Product   `json:"product" gorm:"foreignKey:ProductID"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

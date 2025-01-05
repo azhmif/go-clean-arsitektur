@@ -1,9 +1,13 @@
 package repository
 
 import (
+	"context"
 	"crud-clean-architecture/domain"
+	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -18,14 +22,23 @@ type OrderRepository interface {
 }
 
 type orderRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	redis *redis.Client
 }
 
-func NewOrderRepository(db *gorm.DB) OrderRepository {
-	return &orderRepository{db}
+func NewOrderRepository(db *gorm.DB, redis *redis.Client) OrderRepository {
+	return &orderRepository{db, redis}
 }
+
+const orderCacheKey = "order:all"
 
 func (r *orderRepository) CreateOrderWithDetails(order *domain.Order) error {
+	ctx := context.Background()
+
+	// Hapus cache setelah create
+	if err := r.redis.Del(ctx, orderCacheKey).Err(); err != nil {
+		return err
+	}
 	// Mulai transaksi
 	tx := r.db.Begin()
 	if tx.Error != nil {
@@ -63,9 +76,29 @@ func (r *orderRepository) CreateOrder(order *domain.Order) error {
 }
 
 func (r *orderRepository) GetAllOrders() ([]domain.Order, error) {
+	ctx := context.Background()
+
+	// Cek cache
+	cachedData, err := r.redis.Get(ctx, categoryCacheKey).Result()
+	if err == nil {
+		var orders []domain.Order
+		if err := json.Unmarshal([]byte(cachedData), &orders); err == nil {
+			return orders, nil
+		}
+	}
+
+	// Jika cache tidak ada, fallback ke database
 	var orders []domain.Order
-	err := r.db.Preload("Details").Find(&orders).Error
-	return orders, err
+	if err := r.db.Preload("Details").Preload("Details.Product").
+		Preload("Details.Product.Category").Find(&orders).Error; err != nil {
+		return nil, err
+	}
+
+	// Simpan ke cache
+	data, _ := json.Marshal(orders)
+	_ = r.redis.Set(ctx, orderCacheKey, data, 10*time.Minute).Err()
+	return orders, nil
+
 }
 
 func (r *orderRepository) GetOrderByID(id uint) (*domain.Order, error) {
@@ -75,10 +108,22 @@ func (r *orderRepository) GetOrderByID(id uint) (*domain.Order, error) {
 }
 
 func (r *orderRepository) UpdateOrder(order *domain.Order) error {
+	ctx := context.Background()
+
+	// Hapus cache setelah create
+	if err := r.redis.Del(ctx, orderCacheKey).Err(); err != nil {
+		return err
+	}
 	return r.db.Save(order).Error
 }
 
 func (r *orderRepository) DeleteOrder(id uint) error {
+	ctx := context.Background()
+
+	// Hapus cache setelah create
+	if err := r.redis.Del(ctx, orderCacheKey).Err(); err != nil {
+		return err
+	}
 	return r.db.Delete(&domain.Order{}, id).Error
 }
 func (r *orderRepository) UpdateOrderInvoice(orderID uint, invoiceNumber string) error {

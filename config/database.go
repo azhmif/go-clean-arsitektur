@@ -34,7 +34,7 @@ func getDSN() string {
 
 	password := os.Getenv("DB_PASSWORD")
 	if password == "" {
-		password = ""
+		password = "diribaru"
 	}
 
 	host := os.Getenv("DB_HOST")

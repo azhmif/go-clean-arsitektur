@@ -37,7 +37,7 @@ func main() {
 	// Initialize Repositories
 	categoryRepo := repository.NewCategoryRepository(db, redisClient)
 	productRepo := repository.NewProductRepository(db, redisClient)
-	orderRepo := repository.NewOrderRepository(db)
+	orderRepo := repository.NewOrderRepository(db, redisClient)
 
 	// Initialize Services
 	categoryService := service.NewCategoryService(categoryRepo)
