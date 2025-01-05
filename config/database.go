@@ -24,7 +24,6 @@ func InitDB() *gorm.DB {
 	return db
 }
 
-// getDSN constructs the Data Source Name (DSN) for MySQL
 func getDSN() string {
 	// Load environment variables or provide default values
 	username := os.Getenv("DB_USER")

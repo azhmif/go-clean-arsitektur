@@ -79,7 +79,7 @@ func (r *orderRepository) GetAllOrders() ([]domain.Order, error) {
 	ctx := context.Background()
 
 	// Cek cache
-	cachedData, err := r.redis.Get(ctx, categoryCacheKey).Result()
+	cachedData, err := r.redis.Get(ctx, orderCacheKey).Result()
 	if err == nil {
 		var orders []domain.Order
 		if err := json.Unmarshal([]byte(cachedData), &orders); err == nil {
