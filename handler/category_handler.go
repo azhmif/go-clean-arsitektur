@@ -63,7 +63,7 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 func (h *CategoryHandler) GetAllCategories(c *gin.Context) {
 	categories, err := h.categoryService.GetAllCategories()
 	if err != nil {
-		utils.JSONResponse(c, http.StatusInternalServerError, "Failed to fetch categories", nil, nil)
+		utils.JSONResponse(c, http.StatusInternalServerError, err.Error(), nil, nil)
 		return
 	}
 

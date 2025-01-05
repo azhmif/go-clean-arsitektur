@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -10,6 +11,8 @@ import (
 var RedisClient *redis.Client
 
 func InitRedis() {
+	ctx := context.Background()
+
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("REDIS_HOST"),     // Contoh: "localhost:6379"
 		Password: os.Getenv("REDIS_PASSWORD"), // Kosong jika tidak ada password

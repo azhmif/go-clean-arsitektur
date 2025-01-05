@@ -1,9 +1,13 @@
 package repository
 
 import (
+	"context"
 	"crud-clean-architecture/domain"
+	"encoding/json"
 	"errors"
+	"time"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -21,14 +25,23 @@ type CategoryRepository interface {
 }
 
 type categoryRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	redis *redis.Client
 }
 
-func NewCategoryRepository(db *gorm.DB) CategoryRepository {
-	return &categoryRepository{db}
+func NewCategoryRepository(db *gorm.DB, redis *redis.Client) CategoryRepository {
+	return &categoryRepository{db, redis}
 }
+
+const categoryCacheKey = "categories:all"
 
 func (r *categoryRepository) CreateCategory(category *domain.Category) error {
+	ctx := context.Background()
+
+	// Hapus cache setelah create
+	if err := r.redis.Del(ctx, categoryCacheKey).Err(); err != nil {
+		return err
+	}
 	return r.db.Create(category).Error
 }
 
@@ -38,9 +51,28 @@ func (r *categoryRepository) IsCategoryNameUnique(name string) (bool, error) {
 	return count == 0, err
 }
 func (r *categoryRepository) GetAllCategories() ([]domain.Category, error) {
+	ctx := context.Background()
+
+	// Cek cache
+	cachedData, err := r.redis.Get(ctx, categoryCacheKey).Result()
+	if err == nil {
+		var categories []domain.Category
+		if err := json.Unmarshal([]byte(cachedData), &categories); err == nil {
+			return categories, nil
+		}
+	}
+
+	// Jika cache tidak ada, fallback ke database
 	var categories []domain.Category
-	err := r.db.Find(&categories).Error
-	return categories, err
+	if err := r.db.Find(&categories).Error; err != nil {
+		return nil, err
+	}
+
+	// Simpan ke cache
+	data, _ := json.Marshal(categories)
+	_ = r.redis.Set(ctx, categoryCacheKey, data, 10*time.Minute).Err()
+
+	return categories, nil
 }
 
 func (r *categoryRepository) GetCategoryByID(id uint) (*domain.Category, error) {
@@ -53,6 +85,12 @@ func (r *categoryRepository) GetCategoryByID(id uint) (*domain.Category, error) 
 }
 
 func (r *categoryRepository) UpdateCategory(category *domain.Category) error {
+	ctx := context.Background()
+
+	// Hapus cache setelah create
+	if err := r.redis.Del(ctx, categoryCacheKey).Err(); err != nil {
+		return err
+	}
 	return r.db.Save(category).Error
 }
 
@@ -66,7 +104,12 @@ func (r *categoryRepository) DeleteCategory(id uint) error {
 		}
 		return err
 	}
+	ctx := context.Background()
 
+	// Hapus cache setelah create
+	if err := r.redis.Del(ctx, categoryCacheKey).Err(); err != nil {
+		return err
+	}
 	// Hapus data jika ditemukan
 	return r.db.Delete(&category).Error
 }

@@ -23,7 +23,8 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using default values")
 	}
-
+	config.InitRedis()
+	redisClient := config.RedisClient
 	// Setup Database
 	db := config.InitDB()
 
@@ -34,8 +35,8 @@ func main() {
 	}
 
 	// Initialize Repositories
-	categoryRepo := repository.NewCategoryRepository(db)
-	productRepo := repository.NewProductRepository(db)
+	categoryRepo := repository.NewCategoryRepository(db, redisClient)
+	productRepo := repository.NewProductRepository(db, redisClient)
 	orderRepo := repository.NewOrderRepository(db)
 
 	// Initialize Services
